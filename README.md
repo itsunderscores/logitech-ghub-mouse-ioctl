@@ -6,6 +6,8 @@ This works because G HUB installs a software virtual HID device and exposes a us
 
 Use the included **test app** to verify movement, then drop the **`.hpp` / `.cpp` library** into your own project.
 
+> **Note:** On many setups the virtual mouse stops working after a **reboot**. You may need to **reinstall G HUB after each reboot** (clean install, no saved settings transfer) before the simulator will move the cursor again.
+
 ---
 
 ## Features
@@ -39,9 +41,9 @@ logitech_ghub_mouse.exe --diagnose
 
 You want: **`[OK] Virtual mouse (PID_C231) is active`**.
 
-### Mouse not moving?
+### Mouse not moving? (including after a reboot)
 
-**Reinstall Logitech G HUB and do not keep your previous settings.**
+**Reinstall Logitech G HUB and do not keep your previous settings.** If the PC was just rebooted, treat that as the first step—G HUB often needs a **full reinstall per reboot** for the virtual mouse to work.
 
 1. Uninstall G HUB (Settings → Apps).
 2. Reinstall from Logitech.

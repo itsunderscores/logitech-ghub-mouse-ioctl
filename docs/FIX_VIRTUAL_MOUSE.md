@@ -6,6 +6,12 @@ Diagnose shows **`[DEAD] PHANTOM`**, **`[MISS]`**, or the cursor never moves eve
 
 ---
 
+## After every reboot
+
+On many systems the virtual mouse (**PID_C231**) does not stay usable across a **Windows reboot**. Plan to **reinstall G HUB after each reboot** (same clean reinstall below—**do not** restore previous settings) before using the simulator or your integrated code.
+
+---
+
 ## Fix (recommended)
 
 **Reinstall Logitech G HUB and do not keep your previous settings.**

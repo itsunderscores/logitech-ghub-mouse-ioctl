@@ -82,6 +82,7 @@ int run_diagnose() {
         std::puts("\n=== Mouse simulator not moving / virtual mouse not OK ===");
         std::puts("No physical Logitech mouse is required - only G HUB software.");
         std::puts("Fix: uninstall Logitech G HUB, reinstall, and do NOT keep / transfer previous settings.");
+        std::puts("After a reboot you may need to reinstall G HUB again before movement works.");
         std::puts("Then start G HUB, wait ~30s, and run Diagnose again.");
         std::puts("Details: docs/FIX_VIRTUAL_MOUSE.md");
         return 2;
