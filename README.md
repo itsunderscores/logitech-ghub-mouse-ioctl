@@ -1,53 +1,60 @@
-# Logitech G HUB Virtual Mouse IOCTL
+# Logitech Mouse Simulator (G HUB)
 
-Windows console tool to test **relative mouse movement** through **Logitech G HUB**’s virtual mouse driver (`PID_C231`) via a documented-in-the-wild IOCTL path—not an official Logitech SDK.
+Windows **Logitech mouse simulator** that moves the system cursor through **Logitech G HUB software alone**. It talks to G HUB’s built-in **virtual mouse** (`PID_C231`) over a kernel device interface—**you do not need a physical Logitech mouse plugged in**.
 
-Use it to confirm your G HUB install can inject cursor input before wiring the same logic into your own C++ code.
+This works because G HUB installs a software virtual HID device and exposes a usermode path any local process can write to. That behavior is an **unintended trust boundary in Logitech’s driver stack** (install G HUB → virtual mouse appears → IOCTL injection moves the cursor).
+
+Use the included **test app** to verify movement, then drop the **`.hpp` / `.cpp` library** into your own project.
 
 ---
 
 ## Features
 
-- **Interactive demo menu** (default when run with no arguments)
-  - Random move (100–200 px on X and Y)
-  - Smooth human-like drift (hold **A** to stop)
-  - PnP **diagnose** (virtual keyboard/mouse + ROOT symlinks)
-  - List Logitech **ROOT#SYSTEM#** device paths
-- **Legacy CLI** for scripts: `logitech_ghub_mouse.exe 100 0`, `--diagnose`, `--list`, etc.
-- Drop-in library: **`logitech_ghub_mouse.hpp`** + **`logitech_ghub_mouse.cpp`**
-- Demo UI in **`main.cpp`** (optional; not required for integration)
+- **Interactive demo menu** (run the exe with no arguments)
+  - Random relative move (100–200 px per axis)
+  - Smooth continuous movement (hold **A** to stop)
+  - **Diagnose** virtual mouse / keyboard and device paths
+  - List G HUB **ROOT#SYSTEM#** symlinks
+- **CLI** for scripts: `logitech_ghub_mouse.exe 100 0`, `--diagnose`, `--list`
+- **Drop-in simulator module:** `logitech_ghub_mouse.hpp` + `logitech_ghub_mouse.cpp`
+- Optional demo UI in `main.cpp` (not required for integration)
 
 ---
 
-## Requirements
+## What you need
 
-- Windows **x64**
-- **Logitech G HUB** installed and running
-- Kernel drivers loaded, e.g. `logi_joy_xlcore`, `logi_joy_bus_enum`, `logi_joy_vir_hid`
+| Required | Not required |
+|----------|----------------|
+| Windows **x64** | Physical Logitech mouse |
+| **Logitech G HUB** installed and running | Official Logitech SDK or API |
+| Virtual mouse **active** (see Diagnose) | |
 
-```bat
-driverquery /v | findstr /i logi_joy
-```
+G HUB loads drivers such as `logi_joy_xlcore`, `logi_joy_bus_enum`, and `logi_joy_vir_hid` when it is running.
 
-- **Logitech G HUB Virtual Mouse** (`VID_046D&PID_C231`) **working** in Device Manager (not phantom)
-
-Run diagnose in the app (menu **3**) or:
+Check virtual mouse status: run the app → **3) Diagnose**, or:
 
 ```bat
 logitech_ghub_mouse.exe --diagnose
 ```
 
-You want: `[OK] Virtual mouse (PID_C231) is active`.
+You want: **`[OK] Virtual mouse (PID_C231) is active`**.
 
-If you see **PHANTOM** or **MISS**, use **[docs/FIX_VIRTUAL_MOUSE.md](docs/FIX_VIRTUAL_MOUSE.md)** (uninstall virtual mouse in Device Manager, reboot, reinstall G HUB **without** importing/transferring settings).
+### Mouse not moving?
+
+**Reinstall Logitech G HUB and do not keep your previous settings.**
+
+1. Uninstall G HUB (Settings → Apps).
+2. Reinstall from Logitech.
+3. On first setup, **decline** **Transfer my current settings**, **import profile**, or any “restore backup” option—use a **clean** install.
+4. Start G HUB, wait ~30 seconds, run **Diagnose** again.
+
+More detail: **[docs/FIX_VIRTUAL_MOUSE.md](docs/FIX_VIRTUAL_MOUSE.md)**.
 
 ---
 
 ## Build
 
-**Visual Studio 2022:** open `logitech_ghub_mouse.sln`, configuration **Release | x64**, build.
-
-Output (typical): `bin\x64\Release\logitech_ghub_mouse.exe` (path may vary by project settings).
+**Visual Studio 2022:** open `logitech_ghub_mouse.sln`, **Release | x64**, build.
 
 **MSBuild:**
 
@@ -55,99 +62,83 @@ Output (typical): `bin\x64\Release\logitech_ghub_mouse.exe` (path may vary by pr
 msbuild logitech_ghub_mouse.sln /p:Configuration=Release /p:Platform=x64
 ```
 
-Dependencies: `ntdll.lib`, `setupapi.lib` (linked via `#pragma comment` in `logitech_ghub_mouse.cpp`).
+Links `ntdll.lib` and `setupapi.lib` (via `#pragma comment` in `logitech_ghub_mouse.cpp`).
 
 ---
 
-## Run
-
-### Demo menu
+## Run the simulator test app
 
 ```bat
 logitech_ghub_mouse.exe
 ```
 
-| Key | Action |
-|-----|--------|
-| **1** | One random relative move (100–200 px per axis) |
-| **2** | Continuous smooth movement; hold **A** to stop |
-| **3** | Diagnose virtual devices and symlinks |
-| **4** | List ROOT device paths |
+| Input | Action |
+|-------|--------|
+| **1** | Random relative move |
+| **2** | Smooth movement (hold **A** to stop) |
+| **3** | Diagnose |
+| **4** | List device paths |
 | **0** | Exit |
-
-### Legacy CLI
 
 ```bat
 logitech_ghub_mouse.exe 200 -50
 logitech_ghub_mouse.exe --diagnose
-logitech_ghub_mouse.exe --list
-logitech_ghub_mouse.exe --help
 ```
 
-Movement is always **relative** (delta X/Y), not absolute screen coordinates.
+Movement is **relative** (delta X/Y), not absolute screen position.
 
 ---
 
-## How it works
+## How the simulator works
 
-High-level flow:
+G HUB creates a **fake Logitech mouse** in the kernel. Your program opens a ROOT device object and sends an **8-byte HID-style report** with IOCTL **`0x2A2010`**. The driver delivers that report as if it came from the virtual device; Windows moves the cursor.
 
 ```text
-  logitech_ghub_mouse.exe
+  Your app (simulator)
         |
-        |  CreateFile("\\.\ROOT#SYSTEM#0001#{1abc05c0-c378-41b9-9cef-df1aba82b015}")
+        |  CreateFile("\\.\ROOT#SYSTEM#…#{1abc05c0-…}")
         v
-  logi_joy_xlcore.sys          device interface + IRP forward
-        |
+  logi_joy_xlcore.sys       forwards IOCTL
         v
-  logi_joy_bus_enum.sys        IOCTL 0x2A2010 -> virtual mouse instance (MouseID)
-        |
+  logi_joy_bus_enum.sys     0x2A2010 → virtual mouse (C231)
         v
-  logi_joy_vir_hid.sys         completes pending HID read with your report
-        |
+  logi_joy_vir_hid.sys      HID read completion
         v
-  Windows HID / cursor         pointer moves on screen
+  Cursor moves
 ```
-
-**Usermode contract (current G HUB):**
 
 | Item | Value |
 |------|--------|
-| Interface GUID | `{1abc05c0-c378-41b9-9cef-df1aba82b015}` |
+| Device GUID | `{1abc05c0-c378-41b9-9cef-df1aba82b015}` |
 | Alternate GUID | `{dfbedcdb-2148-416d-9e4d-cecc2424128c}` |
 | Mouse IOCTL | `0x2A2010` |
-| Payload | **8 bytes**: `buttons`, `reserved`, `int16 dx`, `int16 dy`, `wheel`, `unk` |
+| Report | 8 bytes: buttons, reserved, int16 dx, int16 dy, wheel, unk |
 
-Logitech Gaming Software (legacy) used other GUIDs and sometimes **5-byte** reports; this repo defaults to **8-byte** for modern G HUB.
-
-**Important:** If the virtual mouse is a **ghost/phantom** device, `DeviceIoControl` may still return success while the cursor does not move. Always check PnP state (menu **3**).
+If the virtual mouse is **phantom**, IOCTL may still return success but the cursor will **not** move—run **Diagnose** and reinstall G HUB without saved settings.
 
 ---
 
-## Use in your own C++ project
+## Add the simulator to your C++ project
 
-Copy these two files into your repo and add them to your Visual Studio / CMake target:
+Copy into your tree and add both files to your **x64** target:
 
 | File | Purpose |
 |------|---------|
-| **`logitech_ghub_mouse.hpp`** | Public API (`Mouse` class + `move_relative` helper) |
-| **`logitech_ghub_mouse.cpp`** | IOCTL implementation (link once per executable) |
-
-Minimal usage:
+| `logitech_ghub_mouse.hpp` | API |
+| `logitech_ghub_mouse.cpp` | G HUB IOCTL backend |
 
 ```cpp
 #include "logitech_ghub_mouse.hpp"
 
-// Relative move (opens G HUB device on first call):
 logitech_ghub::move_relative(50, -10);
 ```
 
-Full steps, `Mouse` class, CMake, and troubleshooting: **[docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md)**.
+Full guide: **[docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md)**.
 
 ---
 
 ## Legal / ethics
 
-- Reverse-engineered, **unsupported** interface; may break on any G HUB update.
-- Synthetic input may violate game or software terms of service and anti-cheat policies.
-- Intended for **research, debugging, and tooling on systems you control**.
+- Unofficial interface; Logitech may change or remove it in any G HUB update.
+- Synthetic input may break application terms of service or trigger anti-cheat.
+- For research and tooling on systems you control.

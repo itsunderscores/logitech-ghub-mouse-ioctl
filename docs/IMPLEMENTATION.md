@@ -1,176 +1,147 @@
-# Implementing Logitech G HUB mouse movement in your project
+# Integrate the Logitech mouse simulator (G HUB)
 
-Use the **`logitech_ghub_mouse.hpp`** + **`logitech_ghub_mouse.cpp`** pair from this repository. They contain all `CreateFile` / `DeviceIoControl` logic; the demo executable (`main.cpp`) is optional.
+Add **software-simulated** relative mouse movement to your C++ app. This uses G HUB’s **virtual mouse** driver path—the same mechanism as the test executable. **No physical Logitech hardware is required**; only G HUB installed on Windows x64.
 
-> **Disclaimer:** Unsupported interface; verify against your G HUB build. Use only where synthetic input is allowed.
+G HUB exposes a usermode IOCTL on its virtual device node. Sending reports there makes Windows treat input as if it came from Logitech’s simulated mouse—an **unintended capability in Logitech’s software stack**, not a supported public API.
 
 ---
 
-## Quick start (Visual Studio)
+## Files to copy
 
-1. Copy into your project folder:
-   - `logitech_ghub_mouse.hpp`
-   - `logitech_ghub_mouse.cpp`
-2. In Visual Studio: **Add → Existing Item** for both files (or drag into your project).
-3. Ensure the project is **x64** (same as G HUB drivers).
-4. Link libraries (already requested in the `.cpp` via `#pragma comment`):
-   - `ntdll.lib`
-   - `setupapi.lib`  
-   If linking fails, add them under **Project → Properties → Linker → Input → Additional Dependencies**.
-5. Include the header where you move the mouse:
+| File | Role |
+|------|------|
+| `logitech_ghub_mouse.hpp` | Public API |
+| `logitech_ghub_mouse.cpp` | Opens G HUB device, sends `0x2A2010` reports |
+
+The demo `main.cpp` in this repo is optional.
+
+---
+
+## Visual Studio
+
+1. Copy both files into your project.
+2. **Add → Existing Item** for `.hpp` and `.cpp`.
+3. Build **x64** (matches G HUB drivers).
+4. Linker needs `ntdll.lib` and `setupapi.lib` (already `#pragma comment` in the `.cpp`; add manually if link fails).
 
 ```cpp
 #include "logitech_ghub_mouse.hpp"
-```
 
-6. Confirm virtual mouse is active before relying on movement:
-
-```cpp
 if (!logitech_ghub::virtual_mouse_active()) {
-    // C231 phantom/missing — see docs/FIX_VIRTUAL_MOUSE.md
+    // Reinstall G HUB without keeping previous settings — see FIX_VIRTUAL_MOUSE.md
 }
+
+logitech_ghub::move_relative(dx, dy);
 ```
 
 ---
 
-## API overview
+## API
 
-### Option A — One-liner (singleton, thread-safe)
+### Quick: `move_relative`
 
-Best for aim loops or quick tests. Opens the device on first call and reuses the handle.
+Singleton handle, mutex-protected, opens on first use.
 
 ```cpp
-#include "logitech_ghub_mouse.hpp"
-
-void tick_aim(int dx, int dy) {
-    logitech_ghub::move_relative(dx, dy);
-}
-
-// Optional shutdown:
-logitech_ghub::close_shared();
+logitech_ghub::move_relative(100, 0);
+logitech_ghub::close_shared();  // optional
 ```
 
-### Option B — `Mouse` class (your own instance)
-
-Best when you want an explicit lifecycle or multiple configurations.
+### Explicit: `Mouse` class
 
 ```cpp
-#include "logitech_ghub_mouse.hpp"
-
-logitech_ghub::Mouse mouse;
-mouse.set_layout(logitech_ghub::ReportLayout::Bytes8);
-
-if (mouse.open()) {
-    mouse.move_relative(100, -40);
-    mouse.click_left();
-    mouse.close();
+logitech_ghub::Mouse sim;
+sim.set_layout(logitech_ghub::ReportLayout::Bytes8);
+if (sim.open()) {
+    sim.move_relative(-20, 15);
+    sim.click_left();
 }
 ```
 
-Force a specific device path (from `--list` / menu **4**):
+Optional fixed path (from Diagnose / list):
 
 ```cpp
-mouse.open(L"\\\\.\\ROOT#SYSTEM#0001#{1abc05c0-c378-41b9-9cef-df1aba82b015}");
+sim.open(L"\\\\.\\ROOT#SYSTEM#0001#{1abc05c0-c378-41b9-9cef-df1aba82b015}");
 ```
 
-### Health / debugging
+### Diagnostics
 
 ```cpp
-logitech_ghub::VirtualInputHealth h = logitech_ghub::query_virtual_input_health();
-// h.mouse_present, h.mouse_phantom, h.mouse_instance_id
+auto h = logitech_ghub::query_virtual_input_health();
+// h.mouse_present, h.mouse_phantom
 
 auto paths = logitech_ghub::enumerate_device_paths();
 ```
 
-Constants: `logitech_ghub::kMouseIoctl` (`0x2A2010`).
+`logitech_ghub::kMouseIoctl` = `0x2A2010`.
 
 ---
 
-## CMake example
+## CMake
 
 ```cmake
-add_library(logitech_ghub_mouse STATIC
-    third_party/logitech_ghub_mouse/logitech_ghub_mouse.cpp
-)
-target_include_directories(logitech_ghub_mouse PUBLIC
-    third_party/logitech_ghub_mouse
-)
+add_library(logitech_ghub_mouse STATIC logitech_ghub_mouse.cpp)
+target_include_directories(logitech_ghub_mouse PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(logitech_ghub_mouse PUBLIC ntdll setupapi)
-
-add_executable(my_app main.cpp)
-target_link_libraries(my_app PRIVATE logitech_ghub_mouse)
+target_link_libraries(your_app PRIVATE logitech_ghub_mouse)
 ```
 
 ---
 
-## Example: switch between input methods in code
-
-Comment/uncomment the line you want (same pattern as a typical game loop):
+## Switch input methods in your code
 
 ```cpp
-#include "logitech_ghub_mouse.hpp"
-
-void apply_aim(float target_x, float target_y) {
-    const int dx = static_cast<int>(target_x);
-    const int dy = static_cast<int>(target_y);
-
-    // your_memory_aim(dx, dy);
-    // your_driver_move(dx, dy);
-    logitech_ghub::move_relative(dx, dy);
-}
+// other_aim_method(dx, dy);
+logitech_ghub::move_relative(static_cast<int>(dx), static_cast<int>(dy));
 ```
 
 ---
 
-## Prerequisites
+## Requirements
 
-| Requirement | Why |
-|-------------|-----|
-| Windows **x64** | G HUB kernel stack is x64 |
-| **G HUB running** | Virtual devices and ROOT symlinks |
-| **Active C231** | Phantom mouse → IOCTL success, no cursor move |
+| Need | Notes |
+|------|--------|
+| Windows x64 | |
+| G HUB running | Creates virtual C231 |
+| Active virtual mouse | Diagnose → `[OK]` |
 
-If diagnose shows **PHANTOM** or **MISS**, follow **[FIX_VIRTUAL_MOUSE.md](FIX_VIRTUAL_MOUSE.md)**.
+**Not needed:** USB Logitech mouse, Logitech SDK.
 
 ---
 
-## Protocol summary
+## Protocol (modern G HUB)
 
 | Field | Value |
 |-------|--------|
-| Interface GUID | `{1abc05c0-c378-41b9-9cef-df1aba82b015}` |
-| Alternate GUID | `{dfbedcdb-2148-416d-9e4d-cecc2424128c}` |
-| Mouse IOCTL | `0x2A2010` |
-| Report (modern G HUB) | **8 bytes**: `buttons`, `reserved`, `int16 dx`, `int16 dy`, `wheel`, `unk` |
+| GUID | `{1abc05c0-c378-41b9-9cef-df1aba82b015}` |
+| IOCTL | `0x2A2010` |
+| Report | 8 bytes: `buttons`, `reserved`, `int16 dx`, `int16 dy`, `wheel`, `unk` |
 
-Movement is **relative**. Large deltas are split inside `move_relative()` (int16 per IOCTL).
+Relative only; large deltas are split inside `move_relative()`.
 
 ---
 
-## Driver stack (why diagnose matters)
+## Stack
 
 ```text
-Your process → CreateFile(ROOT#SYSTEM#…)
-  → logi_joy_xlcore → logi_joy_bus_enum (0x2A2010)
-  → logi_joy_vir_hid → cursor
+Your app → ROOT device → xlcore → bus_enum (0x2A2010) → vir_hid → cursor
 ```
 
 ---
 
 ## Troubleshooting
 
-| Symptom | Action |
-|---------|--------|
-| `open()` / first `move_relative` fails | Start G HUB; run `enumerate_device_paths()` |
-| IOCTL OK, no movement | [FIX_VIRTUAL_MOUSE.md](FIX_VIRTUAL_MOUSE.md) |
-| Movement stops after update | Re-check paths/report size on new G HUB build |
+| Issue | What to do |
+|-------|------------|
+| `open()` fails | Start G HUB; list paths with `enumerate_device_paths()` |
+| IOCTL OK, no movement | **[FIX_VIRTUAL_MOUSE.md](FIX_VIRTUAL_MOUSE.md)** — reinstall G HUB, **do not** keep previous settings |
+| Broke after G HUB update | Re-check GUID/report size; clean reinstall |
 
 ---
 
-## What not to use this for
+## Scope
 
-- Absolute cursor positioning (compute relative steps yourself)
-- Physical Logitech HID++ on Windows (different stack)
-- Linux (Windows-only)
+- Windows only; relative movement only.
+- Not for absolute cursor teleport (accumulate deltas yourself).
 
-Reference demo: **`main.cpp`** in this repo (interactive menu + CLI).
+Reference behavior: **`main.cpp`** interactive menu in this repository.

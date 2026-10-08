@@ -79,16 +79,11 @@ int run_diagnose() {
         std::puts("\n[WARN] No ROOT#SYSTEM#0002 link (mouse control node is usually 0002).");
 
     if (!health.mouse_present) {
-        std::puts("\n=== Fix PHANTOM / MISS virtual mouse (PID_C231) ===");
-        std::puts("1. Quit G HUB completely (tray + Task Manager: lghub_*, logi_*).");
-        std::puts("2. devmgmt.msc -> View -> Show hidden devices.");
-        std::puts("3. Human Interface Devices: uninstall 'Logitech G HUB Virtual Mouse'.");
-        std::puts("   Enable 'Delete the driver software' if offered. Repeat for any extra PID_C231 mouse ghosts.");
-        std::puts("4. Reboot.");
-        std::puts("5. Reinstall Logitech G HUB. Do NOT use 'Transfer my current settings' / import profile.");
-        std::puts("6. Start G HUB, wait ~30s, run Diagnose again. Device Manager should show Virtual Mouse OK.");
-        std::puts("7. Optional: G HUB profile action Mouse > Move - if that fails, virtual mouse is still dead.");
-        std::puts("\nFull guide: docs/FIX_VIRTUAL_MOUSE.md in this repository.");
+        std::puts("\n=== Mouse simulator not moving / virtual mouse not OK ===");
+        std::puts("No physical Logitech mouse is required - only G HUB software.");
+        std::puts("Fix: uninstall Logitech G HUB, reinstall, and do NOT keep / transfer previous settings.");
+        std::puts("Then start G HUB, wait ~30s, and run Diagnose again.");
+        std::puts("Details: docs/FIX_VIRTUAL_MOUSE.md");
         return 2;
     }
     return 0;
