@@ -6,7 +6,7 @@ This works because G HUB installs a software virtual HID device and exposes a us
 
 Use the included **test app** to verify movement, then drop the **`.hpp` / `.cpp` library** into your own project.
 
-> **Note:** On many setups the virtual mouse stops working after a **reboot**. You may need to **reinstall G HUB after each reboot** (clean install, no saved settings transfer) before the simulator will move the cursor again.
+> **Note:** After a **reboot**, the virtual mouse often stops working until you run the **G HUB installer → Repair** and **do not** transfer previous settings (see below).
 
 ---
 
@@ -41,16 +41,16 @@ logitech_ghub_mouse.exe --diagnose
 
 You want: **`[OK] Virtual mouse (PID_C231) is active`**.
 
-### Mouse not moving? (including after a reboot)
+### Mouse not moving? (especially after a reboot)
 
-**Reinstall Logitech G HUB and do not keep your previous settings.** If the PC was just rebooted, treat that as the first step—G HUB often needs a **full reinstall per reboot** for the virtual mouse to work.
+Run the **Logitech G HUB installer** → **Repair**. When prompted, **do not** use **Transfer my current settings** (or any import/restore of old settings).
 
-1. Uninstall G HUB (Settings → Apps).
-2. Reinstall from Logitech.
-3. On first setup, **decline** **Transfer my current settings**, **import profile**, or any “restore backup” option—use a **clean** install.
+1. Open your G HUB setup `.exe`.
+2. Click **Repair**.
+3. Decline transferring / importing previous settings.
 4. Start G HUB, wait ~30 seconds, run **Diagnose** again.
 
-More detail: **[docs/FIX_VIRTUAL_MOUSE.md](docs/FIX_VIRTUAL_MOUSE.md)**.
+You may need to **Repair after each reboot**. Full steps: **[docs/FIX_VIRTUAL_MOUSE.md](docs/FIX_VIRTUAL_MOUSE.md)**.
 
 ---
 
@@ -116,7 +116,7 @@ G HUB creates a **fake Logitech mouse** in the kernel. Your program opens a ROOT
 | Mouse IOCTL | `0x2A2010` |
 | Report | 8 bytes: buttons, reserved, int16 dx, int16 dy, wheel, unk |
 
-If the virtual mouse is **phantom**, IOCTL may still return success but the cursor will **not** move—run **Diagnose** and reinstall G HUB without saved settings.
+If the virtual mouse is **phantom**, IOCTL may still return success but the cursor will **not** move—run **Diagnose**, then **Repair** G HUB without transferring settings.
 
 ---
 

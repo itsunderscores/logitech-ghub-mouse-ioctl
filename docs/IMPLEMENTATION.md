@@ -4,7 +4,7 @@ Add **software-simulated** relative mouse movement to your C++ app. This uses G 
 
 G HUB exposes a usermode IOCTL on its virtual device node. Sending reports there makes Windows treat input as if it came from Logitech’s simulated mouse—an **unintended capability in Logitech’s software stack**, not a supported public API.
 
-> **Reboot behavior:** The virtual mouse often breaks after a **reboot**. You may need to **reinstall G HUB after every reboot** (no settings transfer) before `move_relative()` works. See **[FIX_VIRTUAL_MOUSE.md](FIX_VIRTUAL_MOUSE.md)**.
+> **Reboot behavior:** After a **reboot**, run the **G HUB installer → Repair** and **do not** transfer previous settings before `move_relative()` works again. See **[FIX_VIRTUAL_MOUSE.md](FIX_VIRTUAL_MOUSE.md)**.
 
 ---
 
@@ -30,7 +30,7 @@ The demo `main.cpp` in this repo is optional.
 #include "logitech_ghub_mouse.hpp"
 
 if (!logitech_ghub::virtual_mouse_active()) {
-    // Reinstall G HUB without keeping previous settings — see FIX_VIRTUAL_MOUSE.md
+    // G HUB Repair, no settings transfer — see FIX_VIRTUAL_MOUSE.md
 }
 
 logitech_ghub::move_relative(dx, dy);
@@ -135,10 +135,10 @@ Your app → ROOT device → xlcore → bus_enum (0x2A2010) → vir_hid → curs
 
 | Issue | What to do |
 |-------|------------|
-| Stopped working after **reboot** | Reinstall G HUB (no saved settings)—often required **every reboot** |
+| Stopped working after **reboot** | G HUB installer → **Repair**, **no** settings transfer (often every reboot) |
 | `open()` fails | Start G HUB; list paths with `enumerate_device_paths()` |
-| IOCTL OK, no movement | **[FIX_VIRTUAL_MOUSE.md](FIX_VIRTUAL_MOUSE.md)** — reinstall G HUB, **do not** keep previous settings |
-| Broke after G HUB update | Re-check GUID/report size; clean reinstall |
+| IOCTL OK, no movement | **[FIX_VIRTUAL_MOUSE.md](FIX_VIRTUAL_MOUSE.md)** — **Repair**, **do not** transfer settings |
+| Broke after G HUB update | Repair again; re-check GUID/report size if needed |
 
 ---
 
