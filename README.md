@@ -1,4 +1,4 @@
-# logitech-ghub-mouse-ioctl
+# Logitech G HUB Virtual Mouse IOCTL
 
 Windows console tool to test **relative mouse movement** through **Logitech G HUB**’s virtual mouse driver (`PID_C231`) via a documented-in-the-wild IOCTL path—not an official Logitech SDK.
 
@@ -151,9 +151,3 @@ Full steps, `Mouse` class, CMake, and troubleshooting: **[docs/IMPLEMENTATION.md
 - Reverse-engineered, **unsupported** interface; may break on any G HUB update.
 - Synthetic input may violate game or software terms of service and anti-cheat policies.
 - Intended for **research, debugging, and tooling on systems you control**.
-
----
-
-## License
-
-Specify a license before publishing (e.g. MIT) if you release on GitHub.
