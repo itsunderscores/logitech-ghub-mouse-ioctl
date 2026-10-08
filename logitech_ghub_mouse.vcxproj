@@ -153,7 +153,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="logitech_ghub_mouse.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClInclude Include="logitech_ghub_mouse.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
