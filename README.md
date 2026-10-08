@@ -1,4 +1,4 @@
-# logitech_ghub_mouse
+# logitech-ghub-mouse-ioctl
 
 Windows console tool to test **relative mouse movement** through **Logitech G HUB**’s virtual mouse driver (`PID_C231`) via a documented-in-the-wild IOCTL path—not an official Logitech SDK.
 
